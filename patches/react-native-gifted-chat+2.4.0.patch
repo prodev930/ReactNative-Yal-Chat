@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-gifted-chat/lib/MessageContainer.js b/node_modules/react-native-gifted-chat/lib/MessageContainer.js
+index 6bdf6da..ebf4d53 100644
+--- a/node_modules/react-native-gifted-chat/lib/MessageContainer.js
++++ b/node_modules/react-native-gifted-chat/lib/MessageContainer.js
+@@ -158,7 +158,7 @@ export default class MessageContainer extends React.PureComponent {
+         this.onEndReached = ({ distanceFromEnd }) => {
+             const { loadEarlier, onLoadEarlier, infiniteScroll, isLoadingEarlier, } = this.props;
+             if (infiniteScroll &&
+-                (this.state.hasScrolled || distanceFromEnd > 0) &&
++                (this.state.hasScrolled || distanceFromEnd >= 0) &&
+                 distanceFromEnd <= 100 &&
+                 loadEarlier &&
+                 onLoadEarlier &&

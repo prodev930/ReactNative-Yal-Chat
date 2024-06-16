@@ -1,0 +1,10 @@
+{
+  "name": "Yal",
+  "displayName": "Yal",
+  "android": {
+    "adaptiveIcon": {
+      "backgroundColor": "#FFFFFF"
+    },
+    "softwareKeyboardLayoutMode":"pan"
+  }
+}

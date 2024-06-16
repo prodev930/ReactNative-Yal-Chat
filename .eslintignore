@@ -1,0 +1,12 @@
+# Ignore build and output directories
+node_modules/
+android/
+ios/
+metro.config.js
+
+# Ignore generated files
+*.bundle
+*.map
+
+# Ignore specific files
+App.js
