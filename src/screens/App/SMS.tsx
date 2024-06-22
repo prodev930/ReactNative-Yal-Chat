@@ -1,33 +1,31 @@
 import useTheme from 'hooks/useTheme';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
-import {MT} from 'styled/MT';
-import {Wrapper} from 'styled';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { MT } from 'styled/MT';
+import { Wrapper } from 'styled';
 import HeaderBar from 'components/HeaderBar';
 import Switcher from 'components/Switcher';
 import NewChatFAB from 'components/Buttons/NewChatFAB';
-import ThreadCard, {ITEM_COVER_HEIGHT} from 'components/ThreadCard3';
-import {FlashList} from '@shopify/flash-list';
+import ThreadCard, { ITEM_COVER_HEIGHT } from 'components/ThreadCard3';
+import { FlashList } from '@shopify/flash-list';
 import ThreadActionHeader from 'components/ThreadActionHeader';
 import CategoryList from 'components/CategoryList';
 import MessageBox from 'components/MessageBox';
 import ConfirmationDialogue from 'components/ConfirmationDialouge';
-import {CommonStyles} from 'styled/common.styles';
-import ThreadQueryServices, {
-  ThreadResponse,
-} from 'services/thread-query.services';
+import { CommonStyles } from 'styled/common.styles';
+import ThreadQueryServices, { ThreadResponse } from 'services/thread-query.services';
 import {
   keepPreviousData,
   useInfiniteQuery as useTanStackInfiniteQuery,
 } from '@tanstack/react-query';
-import {useSelector} from 'react-redux';
-import {VIEW_ACTIONS, selectViewId} from 'redux/threads';
+import { useSelector } from 'react-redux';
+import { VIEW_ACTIONS, selectViewId } from 'redux/threads';
 import TanStackQueryService from 'services/query-services';
 import SMSQueryServices from 'services/sms-query.services';
-import {convertSMSToGiftedChatData} from 'utils/threads';
+import { convertSMSToGiftedChatData } from 'utils/threads';
 
 import unionBy from 'lodash.unionby';
-import {themeColorCombinations} from 'constants/theme';
+import { themeColorCombinations } from 'constants/theme';
 
 const SMS = () => {
   const theme = useTheme();
@@ -38,41 +36,30 @@ const SMS = () => {
   const [keyword, setKeyword] = useState('');
   const [deleteConfirmDialogue, setDeleteConfirmDialogue] = useState(false);
 
-  /**
-   * infinite scroll
-   */
-  const {data, refetch, fetchNextPage, isFetching, isFetchingNextPage} =
-    useTanStackInfiniteQuery({
-      queryKey: ['threads', searchOpen, keyword],
-      initialPageParam: -1,
-      getNextPageParam: lastPage => {
-        if (searchOpen) {
-          return undefined;
-        } else if (lastPage.cursor?.has_next) {
-          const next_cursor =
-            Math.max(lastPage?.cursor?.next_cursor, 0) || undefined;
-          return next_cursor;
-        }
+  const { data, refetch, fetchNextPage, isFetching, isFetchingNextPage } = useTanStackInfiniteQuery({
+    queryKey: ['threads', searchOpen, keyword],
+    initialPageParam: -1,
+    getNextPageParam: lastPage => {
+      if (searchOpen && keyword.length < 3) {
         return undefined;
-      },
-      getPreviousPageParam: firstPage => {
-        return firstPage?.cursor?.next_cursor ?? -1;
-      },
-      queryFn: async ({pageParam}: {pageParam: number}) => {
-        const _cursor = Number.isFinite(pageParam) ? pageParam : -1;
-        if (!searchOpen) {
-          const res = await ThreadQueryServices.getThreads(_cursor);
-
-          return res;
-        }
-
-        return ThreadQueryServices.searchThreadsByKeyword(keyword);
-      },
-      enabled: searchOpen ? keyword.length > 2 : true,
-      placeholderData:
-        searchOpen && keyword.length > 2 ? undefined : keepPreviousData,
-      staleTime: 1000 * 60,
-    });
+      } else if (lastPage.cursor?.has_next) {
+        const next_cursor = Math.max(lastPage?.cursor?.next_cursor, 0) || undefined;
+        return next_cursor;
+      }
+      return undefined;
+    },
+    getPreviousPageParam: firstPage => firstPage?.cursor?.next_cursor ?? -1,
+    queryFn: async ({ pageParam }) => {
+      const _cursor = Number.isFinite(pageParam) ? pageParam : -1;
+      if (!searchOpen || keyword.length < 3) {
+        return await ThreadQueryServices.getThreads(_cursor);
+      }
+      return await ThreadQueryServices.searchThreadsByKeyword(keyword);
+    },
+    enabled: true, // Always enabled to handle refetching on keyword change
+    placeholderData: keepPreviousData,
+    staleTime: 1000 * 60,
+  });
 
   const displayedData = useMemo(() => {
     if (!data) {
@@ -89,13 +76,10 @@ const SMS = () => {
   const renderEmptyList = useCallback(() => {
     const message = isFetching ? 'Loading...' : 'No data at the moment !!!';
     return (
-      <View>
-        {/* <MessageBox message={message} /> */}
-        <View style={{flex: 1, alignItems: 'center'}}>
-          <Text style={{color: 'black', fontSize: 16, fontWeight: '400'}}>
-            {message}
-          </Text>
-        </View>
+      <View style={{ flex: 1, alignItems: 'center' }}>
+        <Text style={{ color: 'black', fontSize: 16, fontWeight: '400' }}>
+          {message}
+        </Text>
       </View>
     );
   }, [isFetching]);
@@ -108,59 +92,50 @@ const SMS = () => {
     );
   }, [isFetchingNextPage]);
 
-  /**
-   * prefetch conversation data
-   */
   useEffect(() => {
-    displayedData.forEach((thread: ThreadResponse) => {
-      const threadId = thread?.thread_id;
+    setInterval(() => {
+      displayedData.forEach((thread: ThreadResponse) => {
+        const threadId = thread?.thread_id;
 
-      if (!threadId) {
-        return;
-      }
+        if (!threadId) {
+          return;
+        }
 
-      const key = ['sms-thread-content', threadId];
-      const isCached = !!TanStackQueryService.queryClient.getQueryData(key);
-      if (isCached) {
-        return;
-      }
+        const key = ['sms-thread-content', threadId];
+        const isCached = !!TanStackQueryService.queryClient.getQueryData(key);
+        if (isCached) {
+          return;
+        }
 
-      TanStackQueryService.prefetchInfiniteQuery(
-        key,
-        async () => {
-          const response = await SMSQueryServices.getSMSbyThreadId(
-            threadId,
-            -1,
-          );
+        TanStackQueryService.prefetchInfiniteQuery(
+          key,
+          async () => {
+            const response = await SMSQueryServices.getSMSbyThreadId(threadId, -1);
 
-          return {
-            sms: response?.sms.map(convertSMSToGiftedChatData) ?? [],
-            cursor: response.cursor,
-          };
-        },
-        -1,
-      );
-    });
+            return {
+              sms: response?.sms.map(convertSMSToGiftedChatData) ?? [],
+              cursor: response.cursor,
+            };
+          },
+          -1,
+        );
+      });
+    }, 1000)
   }, [displayedData]);
 
   const renderItem = useCallback(
-    ({item}: {item: ThreadResponse}) => {
-      return (
-        <ThreadCard item={item} selected={selected} setSelected={setSelected} />
-      );
+    ({ item }: { item: ThreadResponse }) => {
+      return <ThreadCard item={item} selected={selected} setSelected={setSelected} />;
     },
     [selected],
   );
 
-  const handleSearch = useCallback((text = '') => {
-    if (text && text.length) {
-      const _keyword = text.trim();
-      if (_keyword.length < 3) {
-        return;
-      }
-      setKeyword(_keyword);
-    }
-  }, []);
+  const handleSearch = useCallback(async (text = '') => {
+    const trimmedText = text.trim();
+    setKeyword(trimmedText);
+    setSearchOpen(trimmedText.length > 0);
+    refetch();
+  }, [refetch]);
 
   const handleClearSelection = useCallback(() => {
     setSelected([]);
@@ -211,12 +186,7 @@ const SMS = () => {
     } finally {
       refetch();
     }
-  }, [
-    closeDeleteConfirmationDialogue,
-    handleClearSelection,
-    refetch,
-    selected,
-  ]);
+  }, [closeDeleteConfirmationDialogue, handleClearSelection, refetch, selected]);
 
   const keyExtractor = useCallback(
     (item: ThreadResponse) => `sms-thread-${item.thread_id}`,
@@ -251,28 +221,11 @@ const SMS = () => {
           onSearch={handleSearch}
         />
 
-        {/* <ThreadActionHeader
-          selected={selected}
-          onPressClear={handleClearSelection}
-          onPressDelete={handleDelete}
-          onPressArchive={handleArchive}
-          onPressPin={handlePin}
-        />
-
-        <HeaderBar
-          searchOpen={searchOpen}
-          onSearch={handleSearch}
-        />
-        <CategoryList
-          searchOpen={searchOpen}
-          category={selectedCategories}
-          setCategory={setSelectedCategories}
-        /> */}
         <MT MT={theme.spacings.verticalScale.s16} />
         <View style={CommonStyles.flex1}>
           <FlashList
             onEndReached={() => {
-              if (searchOpen) {
+              if (searchOpen && keyword.length >= 3) {
                 return;
               }
               fetchNextPage();
@@ -288,7 +241,7 @@ const SMS = () => {
             contentContainerStyle={{}}
           />
         </View>
-        {searchOpen ? null : (
+        {!searchOpen && (
           <>
             <NewChatFAB />
             {/* <Switcher /> */}
