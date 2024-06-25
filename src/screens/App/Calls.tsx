@@ -160,7 +160,9 @@ const Calls = () => {
 
   const onDialKeyPadPress = useMemo(() => {
     return debounce(async _phoneNumber => {
-      let result = [];
+      let result = []
+      let contact_result = []
+      let call_result = []
 
       const _isDialPadOpen = store.getState().utils.dialPad;
 
@@ -171,7 +173,11 @@ const Calls = () => {
       try {
         setLoading({isShow: true});
         if (_phoneNumber) {
-          result = await RecentCallsQueries.searchCallLogByNumber(_phoneNumber);
+          call_result = await RecentCallsQueries.searchCallLogByNumber(_phoneNumber);
+          contact_result = await ContactQueries.searchContacts(_phoneNumber);
+
+          result = [...call_result, ...contact_result];
+
         } else {
           result = originDataRef.current;
         }

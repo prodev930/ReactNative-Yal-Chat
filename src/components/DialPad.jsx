@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {Animated, BackHandler, Image, Text, View} from 'react-native';
+import {Animated, BackHandler, Image, Text, View, Easing} from 'react-native';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 import styled from 'styled-components/native';
 import {height} from 'utils/device';
@@ -81,25 +81,31 @@ const DialPad = ({phoneHandles, onDialPadValueChange, defaultValue}) => {
     defaultValue && dialPadDisplayerRef.current?.setText(defaultValue);
   }, [defaultValue]);
 
-  const expand = useCallback(() => {
-    Animated.timing(heightAnimation.current, {
-      toValue: 100,
-      duration: 200,
-      useNativeDriver: false,
-    }).start(finished => {
-      //
-    });
-  }, []);
 
-  const collapse = useCallback(() => {
-    Animated.timing(heightAnimation.current, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start(({finished}) => {
-      finished && clearDialPad();
-    });
-  }, [clearDialPad]);
+const expand = useCallback(() => {
+  Animated.timing(heightAnimation.current, {
+    toValue: 100,
+    duration: 150, // Faster animation
+    easing: Easing.inOut(Easing.ease), // Smoother easing function
+    useNativeDriver: false, // useNativeDriver can't be used for height
+  }).start(finished => {
+    // Callback after animation finishes
+  });
+}, []);
+
+const collapse = useCallback(() => {
+  Animated.timing(heightAnimation.current, {
+    toValue: 0,
+    duration: 150, // Faster animation
+    easing: Easing.inOut(Easing.ease), // Smoother easing function
+    useNativeDriver: false, // useNativeDriver can't be used for height
+  }).start(({ finished }) => {
+    if (finished) {
+      clearDialPad(); // Clear dial pad after animation
+    }
+  });
+}, [clearDialPad]);
+
 
   const deleteChar = useCallback(() => {
     const _dialPadNum = dialPadNumRef.current;
