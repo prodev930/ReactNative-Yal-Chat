@@ -16,31 +16,31 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {MT} from 'styled/MT';
-import {useNavigation} from '@react-navigation/native';
-import {Wrapper} from 'styled';
+import { MT } from 'styled/MT';
+import { useNavigation } from '@react-navigation/native';
+import { Wrapper } from 'styled';
 import Switcher from 'components/Switcher';
 import CallSectionHeader from 'components/CallSectionHeader';
 import DialPadFAB from 'components/Buttons/DialPadFAB';
 import DialPad from 'components/DialPad';
-import {useDispatch, useSelector, useStore} from 'react-redux';
-import {FlashList} from '@shopify/flash-list';
-import {normalize} from 'utils/normalize';
-import RecentCallCard, {ITEM_HEIGHT} from 'components/RecentCallCardV2';
-import {screens} from 'constants/screens';
+import { useDispatch, useSelector, useStore } from 'react-redux';
+import { FlashList } from '@shopify/flash-list';
+import { normalize } from 'utils/normalize';
+import RecentCallCard, { ITEM_HEIGHT } from 'components/RecentCallCardV2';
+import { screens } from 'constants/screens';
 import usePhoneHandles from 'hooks/usePhoneHandles';
-import {RecentCallsQueries} from 'database/models/RecentCalls/RecentCalls.queries';
-import {useRecentCallSync} from 'hooks/useSync';
+import { RecentCallsQueries } from 'database/models/RecentCalls/RecentCalls.queries';
+import { useRecentCallSync } from 'hooks/useSync';
 import debounce from 'lodash.debounce';
-import {ContactQueries} from 'database/models/Contacts/Contacts.queries';
+import { ContactQueries } from 'database/models/Contacts/Contacts.queries';
 import ActivityIndicatorController, {
   ActivityIndicatorControllerRef,
 } from 'components/ActivityIndicatorController';
-import {themeColorCombinations} from 'constants/theme';
+import { themeColorCombinations } from 'constants/theme';
 import MyAppThemeContext from 'context/MyAppTheme';
 import Modal from 'react-native-modal';
-import {useClipboard} from '@react-native-clipboard/clipboard';
-import {useToast} from 'react-native-toast-notifications';
+import { useClipboard } from '@react-native-clipboard/clipboard';
+import { useToast } from 'react-native-toast-notifications';
 import ThreadQueryServices from 'services/thread-query.services';
 import { openDialPad } from 'redux/utils';
 
@@ -51,8 +51,8 @@ const Calls = () => {
   const store = useStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [results, setResults] = useState<any[]>([]);
-  const {phoneHandles} = usePhoneHandles();
-  const {recentCallSyncDone} = useRecentCallSync(true);
+  const { phoneHandles } = usePhoneHandles();
+  const { recentCallSyncDone } = useRecentCallSync(true);
   // const originDataRef = useRef<any[]>([]);
   // const fetchNewControllerRef = useRef<ActivityIndicatorControllerRef>(null);
   const emptyControlRef = useRef<ActivityIndicatorControllerRef>(null);
@@ -66,7 +66,7 @@ const Calls = () => {
   const [data, setString] = useClipboard();
   const toast = useToast();
 
-  const {theme: mytheme} = useContext(MyAppThemeContext);
+  const { theme: mytheme } = useContext(MyAppThemeContext);
 
   const setLoading = useCallback(
     ({
@@ -105,28 +105,30 @@ const Calls = () => {
    * fetching data on mount
    */
   useEffect(() => {
-    if (recentCallSyncDone) {
-      (async () => {
-        try {
-          setLoading({isShow: true});
-          const dataForDisplay = await RecentCallsQueries.getAllRecentCalls();
-          originDataRef.current = dataForDisplay ?? [];
-          setResults(originDataRef.current);
-        } catch (error) {
-          console.log('fetching data on mount', {error});
-          setResults([]);
-        } finally {
-          setLoading({isShow: false, message2: 'You have no recent calls'});
-        }
-      })();
-    }
+    setInterval(() => {
+      if (recentCallSyncDone) {
+        (async () => {
+          try {
+            setLoading({ isShow: true });
+            const dataForDisplay = await RecentCallsQueries.getAllRecentCalls();
+            originDataRef.current = dataForDisplay ?? [];
+            setResults(originDataRef.current);
+          } catch (error) {
+            console.log('fetching data on mount', { error });
+            setResults([]);
+          } finally {
+            setLoading({ isShow: false, message2: 'You have no recent calls' });
+          }
+        })();
+      }
+    }, 1000)
   }, [recentCallSyncDone, setLoading]);
 
   const onSearch = useCallback(
     async (text: string) => {
       const keyword = text.trim();
       let result: any[] = [];
-      setLoading({isShow: true});
+      setLoading({ isShow: true });
       try {
         if (searchOpen && keyword) {
           const contacts = await ContactQueries.searchContacts(keyword);
@@ -144,7 +146,7 @@ const Calls = () => {
           result = originDataRef.current;
         }
       } catch (error) {
-        console.log('onSearch', {error});
+        console.log('onSearch', { error });
       } finally {
         setLoading({
           isShow: false,
@@ -171,7 +173,7 @@ const Calls = () => {
       }
 
       try {
-        setLoading({isShow: true});
+        setLoading({ isShow: true });
         if (_phoneNumber) {
           call_result = await RecentCallsQueries.searchCallLogByNumber(_phoneNumber);
           contact_result = await ContactQueries.searchContacts(_phoneNumber);
@@ -209,14 +211,14 @@ const Calls = () => {
           phone_number: _phoneNumber,
         });
       } catch (err) {
-        console.log({err});
+        console.log({ err });
       }
     },
     [navigation],
   );
 
   const renderItem = useCallback(
-    ({item, index}) => {
+    ({ item, index }) => {
       return (
         <RecentCallCard
           handles={phoneHandles}
